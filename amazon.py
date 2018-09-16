@@ -3,10 +3,12 @@ import requests
 import os
 import json
 from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
 from forex_python.converter import CurrencyRates
 
 app = Flask(__name__)
-
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 proxies = {
 #TODO: ISRAELI IP ADDRESSES
 'http' : '',
@@ -15,13 +17,16 @@ proxies = {
 }
 
 @app.route('/calculate', methods=['POST'])
+@cross_origin()
 def get_prices():
-    if(str(request.form['amazon_url']).startswith('https://www.amazon.com')):
-        return amazon_us(True,"",request.form['amazon_url'],True)
-    elif(str(request.form['amazon_url']).startswith('https://www.amazon.de')):
-        return amazon_ger(True,"",request.form['amazon_url'],True)
-    elif(str(request.form['amazon_url']).startswith('https://www.amazon.it')):
-        return amazon_it(True,"",request.form['amazon_url'],True)
+    if(str(request.json['amazon_url']).startswith('https://www.amazon.com')):
+        return amazon_us(True,"",request.json['amazon_url'],True)
+    elif(str(request.json['amazon_url']).startswith('https://www.amazon.de')):
+        return amazon_ger(True,"",request.json['amazon_url'],True)
+    elif(str(request.json['amazon_url']).startswith('https://www.amazon.it')):
+        return amazon_it(True,"",request.json['amazon_url'],True)
+    else:
+        return jsonify(error=True)
 
 s = requests.Session()
 # so Amazon doesn't think I'm a bot
@@ -34,12 +39,18 @@ def build_json(us, ger, it):
     amazon_us_usd = us
     if(not us == "error" and not us == False):
         amazon_us_ils = round(c.convert('USD', 'ILS', us), 2)
+    else:
+        amazon_us_ils = False
     amazon_ger_eur = ger
     if(not ger == "error" and not ger == False):
         amazon_ger_ils = round(c.convert('EUR', 'ILS', ger),2)
+    else:
+        amazon_ger_ils = False
     amazon_it_eur = it
     if(not it == "error" and not us == False):
         amazon_it_ils = round(c.convert('EUR', 'ILS', it),2)
+    else:
+        amazon_it_ils = False
 
     j = json.dumps({
     'amazon_us':{'usd': amazon_us_usd, 'ils': amazon_us_ils},
